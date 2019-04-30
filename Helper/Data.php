@@ -8,62 +8,72 @@ use Magento\Framework\App\Helper\AbstractHelper;
 
 class Data extends AbstractHelper
 {
+    private $firstname;
+    private $lastname;
+    private $email;
 
     public function __construct(
         Context $context
-    ) {
+    )
+    {
         parent::__construct($context);
+        $this->firstname = $_POST["firstname"];
+        $this->lastname = $_POST["lastname"];
+        $this->email = $_POST["email"];
     }
-    
+
     public function spamCheck()
     {
-        $this->blockNamesTooLong();
-        $this->blockRussionNames();
-        $this->blockChineseNames();
+        $this->checkNameLenght();
+        $this->checkMailAddress();
+        $this->checkNames();
     }
-    
-    protected function blockNamesTooLong()
+
+    protected function checkNameLenght()
     {
-        $email = $_POST['email'];
-        $firstname = $_POST['firstname'];
-        $lastname = $_POST['lastname'];
-        if (strlen($firstname) > 30) {
+        // todo: make length configurable
+        if (
+            (strlen($this->firstname) > 30)
+            ||
+            (strlen($this->lastname) > 30)
+        ) {
             throw new Exception('fistname is too long');
         }
-        if (strlen($lastname) > 30) {
-            throw new Exception('lastname is too long');
-        }
     }
-    
-    protected function blockRussionNames()
+
+    /**
+     * @throws Exception
+     */
+    protected function checkNames()
     {
-        $email = $_POST['email'];
-        $firstname = $_POST['firstname'];
-        $lastname = $_POST['lastname'];
-        if (strpos($email, "@mail.ru")) {
-            throw new Exception('Mail.ru e-mail submitted, not permitted');
-        }
-        if (preg_match('/[А-Яа-яЁё]/u', $firstname)) {
-            throw new Exception('Russion characters in firstname');
-        }
-        if (preg_match('/[А-Яа-яЁё]/u', $lastname)) {
-            throw new Exception('Russion characters in lastname');
+        // TODO: make this matches configurable
+        if (
+            preg_match("/\p{Han}+/u", $this->firstname)
+            ||
+            preg_match("/\p{Han}+/u", $this->lastname)
+            ||
+            preg_match('/[А-Яа-яЁё]/u', $this->firstname)
+            ||
+            preg_match('/[А-Яа-яЁё]/u', $this->lastname)
+        ) {
+            // TODO: make this configurable
+            throw new Exception(
+                'unlawful signs characters in ' . $this->firstname . ' or ' . $this->lastname
+            );
         }
     }
-    
-    protected function blockChineseNames()
+
+    /**
+     * @return array
+     * @throws Exception
+     */
+    protected function checkMailAddress()
     {
-        $email = $_POST['email'];
-        $firstname = $_POST['firstname'];
-        $lastname = $_POST['lastname'];
-        if (strpos($email, "@qq.com")) {
-            throw new Exception('qq.com e-mail submitted, not permitted');
+        // TODO: refactor: make mail domains configurable
+        if (strpos($this->email, "@mail.ru")) {
+            throw new Exception('e-mail provider are not permitted');
         }
-        if (preg_match("/\p{Han}+/u", $firstname)) {
-            throw new Exception('Chinese characters in firstname');
-        }
-        if (preg_match("/\p{Han}+/u", $lastname)) {
-            throw new Exception('Chinese characters in lastname');
-        }
+        return array($this->firstname, $this->lastname);
     }
+
 }
